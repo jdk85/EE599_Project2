@@ -4,6 +4,8 @@ package edu.nau.ee599;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import org.apache.commons.csv.CSVFormat;
@@ -81,6 +83,29 @@ public class Project2 {
 				System.out.println(n.getName() + "\tData Points: " + n.getDataSize());
 			}
 			
+			
+			// test data processor methods
+			DataProcessor proc1 = new DataProcessor();
+			ArrayList<Node> shortList = nodes;
+			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss");
+			
+			//Define the start time
+			//String start_date = "04/03/2015 12:00:00";
+			//Parse the start time into ms since 1970
+			//long start_time = sdf.parse(start_date).getTime();
+			
+			String startTime = "04/10/2015 12:00:00";
+			String endTime = "04/10/2015 12:00:00";
+			try{
+				shortList = proc1.getNodeSetDataRange(sdf.parse(startTime).getTime(), sdf.parse(endTime).getTime(), shortList);
+				for(Node s : shortList){
+					System.out.println(s.getName() + "\tData Points: " + s.getDataSize());
+				}
+			}
+			catch(ParseException e){
+				e.printStackTrace();
+				System.exit(0);
+			}
 			
 		}catch(IOException e){
 			e.printStackTrace();
