@@ -41,7 +41,37 @@ public class Node {
 		data.add(tuple);	
 	}
 
-
+	// sets a node's data to the specified arraylist
+	public void setData(ArrayList<Tuple> dataSet){
+		this.data = dataSet;
+	}
+	
+	/**
+	 * Return a range of data for a given start,end time
+	 * @param startTime
+	 * @param endTime
+	 * @return ArrayList of data tuples
+	 */
+	public ArrayList<Tuple> getDataRange(long startTime, long endTime){
+		// declare new ArrayList for result to be stored in. 
+		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
+		
+		// loop through node's data
+		int dataIndex = 0;
+		ArrayList<Tuple> NodeData = new ArrayList<Tuple>();
+		NodeData = this.getData();
+		
+		while(NodeData.get(dataIndex) != null){
+			// if current data-point's time is after start but before end...
+			if(NodeData.get(dataIndex).getTimestamp()>= startTime && NodeData.get(dataIndex).getTimestamp() <= endTime){
+				// get that data point and add to the return list
+				returnList.add(NodeData.get(dataIndex));
+			}
+		}
+		
+		// return an array list of data in that range
+		return returnList;
+	}
 
 	/**
 	 * @return the name
