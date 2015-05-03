@@ -16,6 +16,7 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RefineryUtilities;
 
 /**
  * This class generates a spoof data set that represents a building
@@ -39,6 +40,18 @@ public class KnownRCData extends ApplicationFrame{
 	/** The tau parameters - resistance and capacitance of a building */
 	private double R,C;
 	
+	/** Define the time step (in seconds) */
+	double delta = 60;
+	/** XYSeries to store the outdoor temperature data */
+    private XYSeries outdoorTempData = new XYSeries("Outdoor Temperature"); 
+	/** XYSeries object for the indoor temperature */
+	private XYSeries indoorTempData = new XYSeries("Indoor Temperature"); 
+	/** Create XYSeries object for the heater (or the heat source) */
+	private XYSeries inflowTempData = new XYSeries("In-flow Temperature"); 
+	
+	/** XYDataset object - created by the constructor */
+	private XYDataset dataset;
+	
 	/**
 	 * Constructor - extends ApplicationFrame so we must call the super constructor
 	 * Set the param variables here and create the dataset and the chart
@@ -52,14 +65,12 @@ public class KnownRCData extends ApplicationFrame{
 		this.title=title;
 		this.R = R;
 		this.C = C;
-		XYDataset dataset = createDataset();
-		JFreeChart chart = createChart(dataset);
-		ChartPanel chartPanel = new ChartPanel(chart);
-		chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
-		setContentPane(chartPanel);
+		dataset = createDataset();		
 	}
 
-
+	public XYDataset getDataset(){
+		return dataset;
+	}
 	
 	/**
 	 * Actually create the fake data set here..
@@ -91,10 +102,8 @@ public class KnownRCData extends ApplicationFrame{
 			////////////////////////////////////
 			
 			//Create a new XYSeriesCollection to store the XYSeries objects
-	        XYSeriesCollection data = new XYSeriesCollection();
-	        
-			//Create a new XYSeries to store the outdoor temperature data
-	        XYSeries outdoorTempData = new XYSeries("Outdoor Temperature"); 
+	        XYSeriesCollection data = new XYSeriesCollection();	        
+			
 	        //Create new XYSeries to store the thermostat line
 	        XYSeries thermostat = new XYSeries("Thermostat");   
 	        
@@ -139,14 +148,10 @@ public class KnownRCData extends ApplicationFrame{
 			//
 			////////////////////////////////////
 			
-			//Define the time step (in seconds)
-			double delta = 60;
+			
 			//Placeholders for temporary calculations
 			double indoorVal,inputFlow;
-			//Create XYSeries object for the indoor temperature
-			XYSeries indoorTempData = new XYSeries("Indoor Temperature"); 
-			//Create XYSeries object for the heater (or the heat source)
-			XYSeries inflowTempData = new XYSeries("In-flow Temperature"); 
+			
 			//Initialize the starting values for indoor temp and heater temp
 			indoorTempData.add(outdoorTempData.getX(0), 18);
 			inflowTempData.add(outdoorTempData.getX(0),0);
@@ -166,7 +171,7 @@ public class KnownRCData extends ApplicationFrame{
 				
 				//Calculate the indoor room temperature based on outdoor, heater, and RC values
 				indoorVal = indoorTempData.getY(i-1).doubleValue() + 
-						(delta/C)*(inputFlow - 
+						(delta/C)*(inflowTempData.getY(i-1).doubleValue() - 
 								(indoorTempData.getY(i-1).doubleValue() - outdoorTempData.getY(i-1).doubleValue())/R);
 				//Add the room temperature to the indoor temperature series
 				indoorTempData.add(outdoorTempData.getX(i),indoorVal);
@@ -188,14 +193,33 @@ public class KnownRCData extends ApplicationFrame{
 		
 		
 	}
-/**
- * This method creates a chart object 
- * 	
- * @param dataset
- * @return chart
- */
-private JFreeChart createChart( XYDataset dataset) {
-        
+	
+	public void estimateRC(){
+		double tau,prevIndoor,indoor,prevOutdoor,prevInflow;
+		if(indoorTempData != null && outdoorTempData != null){
+			for(int i = 1; i < indoorTempData.getItemCount(); i++){
+				prevInflow = inflowTempData.getY(i-1).doubleValue();
+				if(prevInflow == 0){
+					prevIndoor = indoorTempData.getY(i-1).doubleValue();
+					indoor = indoorTempData.getY(i).doubleValue();
+					prevOutdoor = outdoorTempData.getY(i-1).doubleValue();					
+					tau = (delta*-(prevIndoor - prevOutdoor))/(indoor - prevIndoor);
+					System.out.println("Known: " + R*C + " Estimated: " + tau);
+				}
+			}
+			
+		}
+		else{
+			System.out.println("Dataset has not been generated!");
+		}
+	}
+	/**
+	 * This method creates a chart object 
+	 * 	
+	 * @param dataset
+	 * @return chart
+	 */
+	public JFreeChart createChart( XYDataset dataset) {	        
         //Create the chart object
          JFreeChart chart = ChartFactory.createTimeSeriesChart(
         	title,      // chart title
@@ -247,5 +271,26 @@ private JFreeChart createChart( XYDataset dataset) {
         return chart;
         
     }
+	
+	/**
+	 * Generates a plot of outdoor, indoor, thermostat temperature values
+	 * using the RC that is passed to this function 
+	 */
+	public void plotFakeData(){				
+		//Create the chart object
+		JFreeChart chart = createChart(getDataset());
+		//Create the panel object
+		ChartPanel chartPanel = new ChartPanel(chart);
+		chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
+		
+		setContentPane(chartPanel);
+		pack();
+		
+		RefineryUtilities.centerFrameOnScreen(this);
+		
+		//Plot the chart
+		this.setVisible(true);	
+		
+	}
 
 }

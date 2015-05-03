@@ -2,16 +2,32 @@ package edu.nau.ee599;
 
 import java.util.ArrayList;
 
+
+/**
+ * Data processing class; contains methods for parsing data
+ * 
+ * @author mm863
+ *
+ */
 public class DataProcessor {
-	// constructor
+	
+	/**
+	 * Default contstructor
+	 */
 	public DataProcessor(){
 		// anything?
 	}
+
 	
 	/**
 	 * returns a single node whose data is a list of tuples of data within the correct time interval
+	 * 
+	 * @param startTime
+	 * @param endTime
+	 * @param node
+	 * @return
 	 */
-	public Node getSingleNodeDataRange(long startTime, long endTime, Node node){
+	public static Node getSingleNodeDataRange(long startTime, long endTime, Node node){
 		// declare temp node which is a copy of the passed in node
 		Node tempNode = node;
 		// set data on temp node to be a subset of passed node's data from correct interval
@@ -20,10 +36,16 @@ public class DataProcessor {
 		return tempNode;
 	}
 	
+	
 	/**
 	 * returns an arraylist of Nodes whose data is a list of tuples of data within the correct time interval
-	*/
-	public ArrayList<Node> getNodeSetDataRange(long startTime, long endTime, ArrayList<Node> nodes){
+	 * 
+	 * @param startTime
+	 * @param endTime
+	 * @param nodes
+	 * @return
+	 */
+	public static ArrayList<Node> getNodeSetDataRange(long startTime, long endTime, ArrayList<Node> nodes){
 		// arraylist to hold return values
 		ArrayList<Node> returnList = new ArrayList<Node>();
 		
@@ -42,12 +64,47 @@ public class DataProcessor {
 		// return an arraylist of all nodes, each of which's data is an arraylist of tuples from the appropriate data range
 		return returnList;
 	}
-	
+
+	/**
+	 * returns an arraylist of Nodes whose data is a list of tuples of data within the correct time interval
+	 * 
+	 * @param startTime
+	 * @param endTime
+	 * @param nodes
+	 * @return
+	 */
+	public static ArrayList<Node> getNodeSetDataRange(long startTime, long endTime, int start_hour, int end_hour, ArrayList<Node> nodes, int threshold){
+		// arraylist to hold return values
+		ArrayList<Node> returnList = new ArrayList<Node>();
+		
+		// loop through all passed-in nodes
+		for(int i = 0; i < nodes.size(); i++){
+			// temp node to copy current node's contents into
+			Node tempNode = nodes.get(i);
+			
+			// get data range from range for this node
+			tempNode.setData(tempNode.getDataRange(startTime, endTime,start_hour,end_hour));
+			
+			if(tempNode.getDataSize() > threshold){
+				// add temp node to return list
+				returnList.add(tempNode);
+			}
+			
+		}
+		
+		// return an arraylist of all nodes, each of which's data is an arraylist of tuples from the appropriate data range
+		return returnList;
+	}
 	/**
 	 * returns an arraylist of tuples with the min and max temps over a given interval for a single node
 	 * First tuple in arraylist: min, Second tuple in arraylist: max
+	 * 
+	 * @param startTime
+	 * @param endTime
+	 * @param node
+	 * @return
 	 */
-	 public ArrayList<Tuple> getMinMaxRangeData(long startTime, long endTime, Node node){
+	 public static ArrayList<Tuple> getMinMaxRangeData(long startTime, long endTime, Node node){
 		// arraylist to hold min and max values
 		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
 		long time = 0;// dummy values
@@ -84,11 +141,17 @@ public class DataProcessor {
 		returnList.add(max);
 		return returnList;
 	}
-	
-	/** 
-	 *returns an arraylist of an arraylist of tuples with the min and max temps over a given interval for a single node, for all nodes in the arraylist
-	 */
-	public ArrayList<ArrayList<Tuple>> getMinMaxRangeDataSet(long startTime, long endTime, ArrayList<Node> nodeList){
+
+	 
+	 /**
+	  * returns an arraylist of an arraylist of tuples with the min and max temps over a given interval for a single node, for all nodes in the arraylist
+	  * 
+	  * @param startTime
+	  * @param endTime
+	  * @param nodeList
+	  * @return
+	  */
+	public static ArrayList<ArrayList<Tuple>> getMinMaxRangeDataSet(long startTime, long endTime, ArrayList<Node> nodeList){
 		ArrayList<ArrayList<Tuple>> returnArrayList = new ArrayList<ArrayList<Tuple>>();
 		
 		// loop through all tuple arraylists in the arraylist of nodes

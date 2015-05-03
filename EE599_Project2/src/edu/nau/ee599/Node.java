@@ -7,6 +7,8 @@ package edu.nau.ee599;
 
 // includes
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 // Node class definition
 public class Node {
@@ -46,6 +48,50 @@ public class Node {
 		this.data = dataSet;
 	}
 	
+	/**
+	 * Return a range of data for a given start,end time filted to fall within the specified start
+	 * and end hour
+	 * 
+	 * @param startTime
+	 * @param endTime
+	 * @param start_hour
+	 * @param end_hour
+	 * @return
+	 */
+	public ArrayList<Tuple> getDataRange(long startTime, long endTime, int start_hour, int end_hour){
+		// declare new ArrayList for result to be stored in. 
+		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
+		//Calendar obj use to get hour from timestamp
+		Calendar cal = Calendar.getInstance();
+		//Stores the hour (0-23) of the current datapoint
+		int hour;
+		long timestamp;
+		for(int i = 0; i < data.size(); i++){
+			timestamp = data.get(i).getTimestamp();
+			// if current data-point's time is after start but before end...
+			if( timestamp >= startTime && timestamp <= endTime){
+				//get the hour of the timestamp
+				cal.setTime(new Date(timestamp));
+				hour = cal.get(Calendar.HOUR_OF_DAY);				
+				//Do we need to rollerover?
+				if(start_hour > end_hour){
+					if(hour >= start_hour || hour < end_hour){
+						// get that data point and add to the return list
+						returnList.add(data.get(i));
+					}
+				}
+				else{
+					if(hour >= start_hour && hour < end_hour){
+						// get that data point and add to the return list
+						returnList.add(data.get(i));
+					}
+				}
+			}
+		}
+		
+		// return an array list of data in that range
+		return returnList;
+	}
 	/**
 	 * Return a range of data for a given start,end time
 	 * @param startTime
