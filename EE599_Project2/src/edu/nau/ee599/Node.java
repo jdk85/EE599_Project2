@@ -16,6 +16,7 @@ public class Node {
 	private String name;
 	private int id;
 	private ArrayList<Tuple> data;
+	private ArrayList<Tuple> taus;
 	
 	// constructor
 	public Node(String name, int id){
@@ -24,13 +25,29 @@ public class Node {
 		
 		//Init the Arraylist
 		data = new ArrayList<Tuple>();
+		taus = new ArrayList<Tuple>();
 	}// end constructor
 	
-	
+	/**
+	 * 
+	 * @return
+	 */
 	public ArrayList<Tuple> getData(){
 		return data;
 	}
-	// retrieves the number of data elements in the Node's data
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public ArrayList<Tuple> getTaus(){
+		return taus;
+	}
+	
+	/**
+	 * retrieves the number of data elements in the Node's data
+	 * @return
+	 */
 	public int getDataSize(){
 		return data.size();
 	}// end getNumDataPoints
@@ -39,14 +56,18 @@ public class Node {
 	 * Add a tuple to the data object for this node
 	 * @param tuple
 	 */
-	public void addTuple(Tuple tuple){
+	public void addDataTuple(Tuple tuple){
 		data.add(tuple);	
+	}
+	public void addTausTuple(Tuple tuple){
+		taus.add(tuple);
 	}
 
 	// sets a node's data to the specified arraylist
 	public void setData(ArrayList<Tuple> dataSet){
 		this.data = dataSet;
 	}
+	
 	
 	/**
 	 * Return a range of data for a given start,end time filted to fall within the specified start

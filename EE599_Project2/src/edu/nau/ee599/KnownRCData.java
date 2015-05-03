@@ -3,6 +3,7 @@ import java.awt.Color;
 import java.awt.geom.Rectangle2D;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.jfree.chart.ChartFactory;
@@ -68,6 +69,10 @@ public class KnownRCData extends ApplicationFrame{
 		dataset = createDataset();		
 	}
 
+	public KnownRCData(String title){
+		super(title);
+		this.title = title;
+	}
 	public XYDataset getDataset(){
 		return dataset;
 	}
@@ -194,20 +199,72 @@ public class KnownRCData extends ApplicationFrame{
 		
 	}
 	
+	private XYDataset createDataset(Node node) {
+		try{			
+			//Create a new XYSeriesCollection to store the XYSeries objects
+	        XYSeriesCollection collection = new XYSeriesCollection();	        
+			
+	        //Create new XYSeries to store the thermostat line
+	        XYSeries nodeData = new XYSeries("Node Data");   
+	        ArrayList<Tuple> data = node.getData();
+	        for(Tuple t : data){
+	        	nodeData.add(t.getTimestamp(),t.getTemperature());
+				
+			}		
+			
+			//Add all the series to the collection
+			collection.addSeries(nodeData);
+			return collection;
+		}catch(Exception e){
+			e.printStackTrace();
+			System.exit(0);
+		}
+		
+		return null;
+		
+		
+		
+	}
 	public void estimateRC(){
-		double tau,prevIndoor,indoor,prevOutdoor,prevInflow;
+		double tau,t0,t1,e0,q0;
+		int counter = 0, good = 0;
 		if(indoorTempData != null && outdoorTempData != null){
 			for(int i = 1; i < indoorTempData.getItemCount(); i++){
-				prevInflow = inflowTempData.getY(i-1).doubleValue();
-				if(prevInflow == 0){
-					prevIndoor = indoorTempData.getY(i-1).doubleValue();
-					indoor = indoorTempData.getY(i).doubleValue();
-					prevOutdoor = outdoorTempData.getY(i-1).doubleValue();					
-					tau = (delta*-(prevIndoor - prevOutdoor))/(indoor - prevIndoor);
-					System.out.println("Known: " + R*C + " Estimated: " + tau);
-				}
+				q0 = inflowTempData.getY(i-1).doubleValue();
+//				if(q0 == 0){
+					t0 = indoorTempData.getY(i-1).doubleValue();
+					t1 = indoorTempData.getY(i).doubleValue();
+					e0 = outdoorTempData.getY(i-1).doubleValue();	
+					//Make sure there was a change
+					if((t1-t0) != 0){
+						
+						tau = (-delta*(t0-e0))/(t1-t0);
+						
+						
+						
+						if(delta < tau){
+							counter++;
+							if(tau >= 240 && tau <= 260){
+								good++;
+								//System.out.println("Known: " + R*C + " Estimated: " + tau);
+								//System.out.println("t0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta);							
+								//System.out.println("GOOD\tt0-e0: " + (t0-e0) + "\tt1-t0: " + (t1-t0));
+	//							if(t1-t0 > 0){
+	//								System.out.println("POSITIVE GOOD");
+	//							}
+							}
+							else{
+								//System.out.print("BAD\tt0-e0: " + (t0-e0) + "\tt1-t0: " + (t1-t0));
+	//							if(t1-t0 < 0){
+	//								System.out.println("NEGATIVE BAD");
+	//							}
+							}
+						}
+						
+					}
+//				}
 			}
-			
+			System.out.println("Good/Total: " + good + "/" + counter + " - " + ((double)good/counter));
 		}
 		else{
 			System.out.println("Dataset has not been generated!");
@@ -272,6 +329,22 @@ public class KnownRCData extends ApplicationFrame{
         
     }
 	
+	public void plotNodeData(Node node){
+		
+		//Create the chart object
+		JFreeChart chart = createChart(createDataset(node));
+		//Create the panel object
+		ChartPanel chartPanel = new ChartPanel(chart);
+		chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
+		
+		setContentPane(chartPanel);
+		pack();
+		
+		RefineryUtilities.centerFrameOnScreen(this);
+		
+		//Plot the chart
+		this.setVisible(true);	
+	}
 	/**
 	 * Generates a plot of outdoor, indoor, thermostat temperature values
 	 * using the RC that is passed to this function 
