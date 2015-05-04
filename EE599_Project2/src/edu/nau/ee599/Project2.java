@@ -2,12 +2,12 @@ package edu.nau.ee599;
 
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -27,6 +27,7 @@ public class Project2 {
 	public static void main(String[] args){
 		(new Project2()).run();
 		//(new Project2()).fake();
+		//(new Project2()).plotFake();
 		//(new Project2()).plotArb();
 	}
 	
@@ -69,11 +70,21 @@ public class Project2 {
 		*/
 		
 	}
-	public void fake(){
-		double R = 0.5;
-		double C = 500;
+	public void plotFake(){
+		double R = 5.88;
+		double C = 3401;
 		//Generate the dataset
-		KnownRCData rcdata = new KnownRCData("Generated Outdoor Temperature Data", R,C);
+		KnownRCData rcdata = new KnownRCData("Generated Indoor Temperature Data", R,C);
+		rcdata.plotFakeData();
+		
+		
+	}
+	
+	public void fake(){
+		double R = 5.88;
+		double C = 3401;
+		//Generate the dataset
+		KnownRCData rcdata = new KnownRCData("Generated Indoor Temperature Data", R,C);
 		//rcdata.plotFakeData();
 		rcdata.estimateRC();
 		
@@ -138,10 +149,31 @@ public class Project2 {
 			//
 			////////////////////////////////////
 			estimateRC(shortList);
+			
+			
+			/////////////////////////////////////
+			//
+			//		Generate CSV
+			//
+			////////////////////////////////////
+			FileWriter writer = new FileWriter("TauData.csv");
+			writer.append("name,timestamp,tau\n");
+			for(Node n : shortList){				
+				for(Tuple t : n.getTaus()){
+					writer.append(n.getName() + "," + t.getTimestamp() + "," + t.getTemperature() + "\n");
+				}
+			}
+			writer.flush();
+			writer.close();
+			System.out.println("Done");
 			//TODO: take the tau arrays from each node and find ML
 			
 		}
 		catch(ParseException e){
+			e.printStackTrace();
+			System.exit(0);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(0);
 		}
@@ -199,12 +231,12 @@ public class Project2 {
 					t1 = data.get(i).getTemperature();
 					delta = (ts1 - ts)/1000.;
 					//make sure delta is positive and not the same timestamp
-					if(delta > 0){
+					if(delta > 0 && !(delta > 65)){
 						if(t1-t0 != 0){
 							tau = (-delta*(t0-e0))/(t1-t0);
 							//Check for stability
 							if(delta < tau){
-								System.out.println("tau: " + tau + "\tt0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta + " " + new Date(ts));							
+								//System.out.println("tau: " + tau + "\tt0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta + " " + new Date(ts));							
 								n.addTausTuple(new Tuple(ts,tau));
 							}
 						}

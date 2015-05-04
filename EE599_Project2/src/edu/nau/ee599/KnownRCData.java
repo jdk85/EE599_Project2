@@ -92,7 +92,7 @@ public class KnownRCData extends ApplicationFrame{
 	private XYDataset createDataset() {
 		try{
 			//Number of samples - 2 weeks at a minute interval
-			int samples = 1440*14;
+			int samples = 1440*7;
 			//Thermostat target temperature (degrees C)
 			double thermo = 20.0;
 			
@@ -165,7 +165,7 @@ public class KnownRCData extends ApplicationFrame{
 			for(int i = 1; i < samples; i++){
 				//Use previous indoor temp value to determine whether or not to turn on the heater
 				if(indoorTempData.getY(i-1).doubleValue() < thermo){
-					inputFlow = 43.333;	//About 110 degrees F - typical heater output				
+					inputFlow = 30;	//About 110 degrees F - typical heater output				
 				}
 				else{
 					inputFlow = 0;
@@ -198,7 +198,11 @@ public class KnownRCData extends ApplicationFrame{
 		
 		
 	}
-	
+	/**
+	 * 
+	 * @param node
+	 * @return
+	 */
 	private XYDataset createDataset(Node node) {
 		try{			
 			//Create a new XYSeriesCollection to store the XYSeries objects
@@ -225,46 +229,32 @@ public class KnownRCData extends ApplicationFrame{
 		
 		
 	}
+	
+	/**
+	 * 
+	 */
 	public void estimateRC(){
-		double tau,t0,t1,e0,q0;
+		double tau,t0,t1,e0;
 		int counter = 0, good = 0;
+		double RC = R*C;
+		
 		if(indoorTempData != null && outdoorTempData != null){
 			for(int i = 1; i < indoorTempData.getItemCount(); i++){
-				q0 = inflowTempData.getY(i-1).doubleValue();
-//				if(q0 == 0){
 					t0 = indoorTempData.getY(i-1).doubleValue();
 					t1 = indoorTempData.getY(i).doubleValue();
 					e0 = outdoorTempData.getY(i-1).doubleValue();	
 					//Make sure there was a change
-					if((t1-t0) != 0){
-						
+					if((t1-t0) != 0){						
 						tau = (-delta*(t0-e0))/(t1-t0);
-						
-						
-						
 						if(delta < tau){
 							counter++;
-							if(tau >= 240 && tau <= 260){
+							if(tau >= RC-10 && tau <= RC+10){
 								good++;
-								//System.out.println("Known: " + R*C + " Estimated: " + tau);
-								//System.out.println("t0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta);							
-								//System.out.println("GOOD\tt0-e0: " + (t0-e0) + "\tt1-t0: " + (t1-t0));
-	//							if(t1-t0 > 0){
-	//								System.out.println("POSITIVE GOOD");
-	//							}
 							}
-							else{
-								//System.out.print("BAD\tt0-e0: " + (t0-e0) + "\tt1-t0: " + (t1-t0));
-	//							if(t1-t0 < 0){
-	//								System.out.println("NEGATIVE BAD");
-	//							}
-							}
-						}
-						
+						}						
 					}
-//				}
 			}
-			System.out.println("Good/Total: " + good + "/" + counter + " - " + ((double)good/counter));
+			System.out.println("Correct Tau/Total Samples: " + good + "/" + counter + " - " + ((double)good/counter));
 		}
 		else{
 			System.out.println("Dataset has not been generated!");
