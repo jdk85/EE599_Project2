@@ -94,7 +94,7 @@ public class KnownRCData extends ApplicationFrame{
 			//Number of samples - 2 weeks at a minute interval
 			int samples = 1440*7;
 			//Thermostat target temperature (degrees C)
-			double thermo = 20.0;
+			double thermo = 21.111;
 			
 			
 			
@@ -132,7 +132,7 @@ public class KnownRCData extends ApplicationFrame{
 			//For each sample, calculate and populate the outdoor temperature data (model as sine wave)
 			for(int i = 0; i < samples; i++){	
 				//Calculate the temperature at time t
-				tempTemp = (amplitude/2)*Math.sin((2*Math.PI)*i*period) + (amplitude/2) + minTemp;
+				tempTemp = (amplitude/2)*Math.sin((2*Math.PI)*i*period) + (amplitude/2) + minTemp + (Math.random()*5 - 2.5);
 				//Increment start time by a minute
 				start_time += 60*1000;
 				//We're just drawing a straight line
@@ -158,14 +158,14 @@ public class KnownRCData extends ApplicationFrame{
 			double indoorVal,inputFlow;
 			
 			//Initialize the starting values for indoor temp and heater temp
-			indoorTempData.add(outdoorTempData.getX(0), 18);
+			indoorTempData.add(outdoorTempData.getX(0), outdoorTempData.getY(0));
 			inflowTempData.add(outdoorTempData.getX(0),0);
 			
 			//For each sample, determine if the heater is on/off and then calculate the room temperature
 			for(int i = 1; i < samples; i++){
 				//Use previous indoor temp value to determine whether or not to turn on the heater
 				if(indoorTempData.getY(i-1).doubleValue() < thermo){
-					inputFlow = 30;	//About 110 degrees F - typical heater output				
+					inputFlow = 16.666;	//About 110 degrees F - typical heater output				
 				}
 				else{
 					inputFlow = 0;
@@ -186,7 +186,7 @@ public class KnownRCData extends ApplicationFrame{
 			data.addSeries(indoorTempData);
 			data.addSeries(outdoorTempData);
 			data.addSeries(thermostat);
-			data.addSeries(inflowTempData);
+			//data.addSeries(inflowTempData);
 			return data;
 		}catch(Exception e){
 			e.printStackTrace();

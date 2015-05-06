@@ -25,10 +25,10 @@ public class Project2 {
 	 * @param args
 	 */
 	public static void main(String[] args){
-		(new Project2()).run();
-		//(new Project2()).fake();
-		//(new Project2()).plotFake();
-		//(new Project2()).plotArb();
+//		(new Project2()).run();
+//		(new Project2()).fake();
+		(new Project2()).plotFake();
+//		(new Project2()).plotArb();
 	}
 	
 	/**
@@ -190,59 +190,71 @@ public class Project2 {
 		
 		double tau,t0,t1,e0,delta;
 		long ts,ts1;
-		
-		//Iterate through each node
-		for(Node n : nodes){
-			
-			//Make sure we're not using the arboretum node
-			if(!n.getName().equals("arboretum")){
-				//System.out.println("Node: " + n.getName());
-				ArrayList<Tuple> data = n.getData();
+		try{
+			FileWriter writer = new FileWriter("TemperatureData.csv");
+			writer.append("name,timestamp,indoor,outdoor\n");
+			//Iterate through each node
+			for(Node n : nodes){
 				
-				
-				/////////////////////////////////////
-				//
-				//		Calculate RC (Tau)
-				//
-				// Use this equation:
-				// tau = (-delta*(t0-e0))/(t1-t0)
-				//
-				// Where
-				// delta: time step (ts1-ts)/1000.0 in seconds
-				// t0 = indoor temp at time t
-				// t1 = indoor temp at time t+delta
-				// e0 = outdoor temp at time t
-				// ts = time t
-				// ts1 = time at t+delta
-				//
-				//
-				////////////////////////////////////
-				for(int i = 1; i < data.size(); i++){
-					//Get the previous timestamp
-					ts = data.get(i-1).getTimestamp();
-					//Get the current timestamp
-					ts1 = data.get(i).getTimestamp();
+				//Make sure we're not using the arboretum node
+				if(!n.getName().equals("arboretum")){
+					//System.out.println("Node: " + n.getName());
+					ArrayList<Tuple> data = n.getData();
 					
-					//Get the arb data temperature for the closest timestamp to the current (Te(t))
-					e0 = getOutdoorTempAtTimeT(arboretum, ts);
-					//Fetch the temperature for previous room temp (Th(t))
-					t0 = data.get(i-1).getTemperature();
-					//Fetch the temperature for the current room temp (Th(delta+t))
-					t1 = data.get(i).getTemperature();
-					delta = (ts1 - ts)/1000.;
-					//make sure delta is positive and not the same timestamp
-					if(delta > 0 && !(delta > 65)){
-						if(t1-t0 != 0){
-							tau = (-delta*(t0-e0))/(t1-t0);
-							//Check for stability
-							if(delta < tau){
-								//System.out.println("tau: " + tau + "\tt0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta + " " + new Date(ts));							
-								n.addTausTuple(new Tuple(ts,tau));
+					
+					/////////////////////////////////////
+					//
+					//		Calculate RC (Tau)
+					//
+					// Use this equation:
+					// tau = (-delta*(t0-e0))/(t1-t0)
+					//
+					// Where
+					// delta: time step (ts1-ts)/1000.0 in seconds
+					// t0 = indoor temp at time t
+					// t1 = indoor temp at time t+delta
+					// e0 = outdoor temp at time t
+					// ts = time t
+					// ts1 = time at t+delta
+					//
+					//
+					////////////////////////////////////
+					for(int i = 1; i < data.size(); i++){
+						//Get the previous timestamp
+						ts = data.get(i-1).getTimestamp();
+						//Get the current timestamp
+						ts1 = data.get(i).getTimestamp();
+						
+						//Get the arb data temperature for the closest timestamp to the current (Te(t))
+						e0 = getOutdoorTempAtTimeT(arboretum, ts);
+						//Fetch the temperature for previous room temp (Th(t))
+						t0 = data.get(i-1).getTemperature();
+						//Fetch the temperature for the current room temp (Th(delta+t))
+						t1 = data.get(i).getTemperature();
+						writer.append(n.getName()+","+ts+","+t0+","+e0+"\n");
+						//Filter out any outlier temperature values
+						if((t0 > 0 && t0 < 60) || (t1 > 0 && t1 < 60)){
+							delta = (ts1 - ts)/1000.;
+							//make sure delta is positive and not the same timestamp
+							if(delta > 0 && !(delta > 65)){
+								if(t1-t0 != 0){
+									tau = (-delta*(t0-e0))/(t1-t0);
+									//Check for stability
+									if(delta < tau){
+										//System.out.println("tau: " + tau + "\tt0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta + " " + new Date(ts));							
+										n.addTausTuple(new Tuple(ts,tau));
+									}
+								}
 							}
 						}
 					}
 				}
 			}
+			writer.flush();
+			writer.close();
+		}catch(Exception e){
+			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 	
