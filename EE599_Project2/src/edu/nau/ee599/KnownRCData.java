@@ -35,7 +35,7 @@ public class KnownRCData extends ApplicationFrame{
 	/** The average minimum temperature in Flagstaff in April */ 
 	private int minTemp = -3;
 	/** The average max temperature in Flagstaff in April */
-	private int maxTemp = 14;
+	private int maxTemp = 17;
 	/** The title for the chart object */
 	private String title;
 	/** The tau parameters - resistance and capacitance of a building */
@@ -91,10 +91,7 @@ public class KnownRCData extends ApplicationFrame{
 	 */
 	private XYDataset createDataset() {
 		try{
-			//Number of samples - 2 weeks at a minute interval
-			int samples = 1440*7;
-			//Thermostat target temperature (degrees C)
-			double thermo = 21.111;
+			
 			
 			
 			
@@ -120,10 +117,14 @@ public class KnownRCData extends ApplicationFrame{
 			int amplitude = maxTemp - minTemp;
 			//Placeholder - temporary temperature data
 			double tempTemp;
-			
+			//Number of samples - 2 weeks at a minute interval
+			int samples = (int)freq*7;
+//			int samples = 25;
+			//Thermostat target temperature (degrees C)
+			double thermo = 21.111;
 			//Define the start time
-			String start_date = "04/03/2015 12:00:00";
-		
+			String start_date = "04/10/2015 12:00:00";
+
 			//Parse the start time into ms since 1970
 			long start_time = sdf.parse(start_date).getTime();
 			
@@ -132,7 +133,7 @@ public class KnownRCData extends ApplicationFrame{
 			//For each sample, calculate and populate the outdoor temperature data (model as sine wave)
 			for(int i = 0; i < samples; i++){	
 				//Calculate the temperature at time t
-				tempTemp = (amplitude/2)*Math.sin((2*Math.PI)*i*period) + (amplitude/2) + minTemp + (Math.random()*5 - 2.5);
+				tempTemp = (amplitude/2)*Math.sin((2*Math.PI)*i*period) + (amplitude/2) + minTemp +(Math.random()*2.5 - 1.125);
 				//Increment start time by a minute
 				start_time += 60*1000;
 				//We're just drawing a straight line
@@ -165,7 +166,7 @@ public class KnownRCData extends ApplicationFrame{
 			for(int i = 1; i < samples; i++){
 				//Use previous indoor temp value to determine whether or not to turn on the heater
 				if(indoorTempData.getY(i-1).doubleValue() < thermo){
-					inputFlow = 16.666;	//About 110 degrees F - typical heater output				
+					inputFlow = 3370/60;	//3,370 watts/hour for a 10x10x8 room with poor insulation and a lot of windows / 60 for a minute output				
 				}
 				else{
 					inputFlow = 0;

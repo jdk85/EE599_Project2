@@ -17,6 +17,7 @@ public class Node {
 	private int id;
 	private ArrayList<Tuple> data;
 	private ArrayList<Tuple> taus;
+	private double mleTau;
 	
 	// constructor
 	public Node(String name, int id){
@@ -123,16 +124,14 @@ public class Node {
 		// declare new ArrayList for result to be stored in. 
 		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
 		
-		// loop through node's data
-		int dataIndex = 0;
-		ArrayList<Tuple> NodeData = new ArrayList<Tuple>();
-		NodeData = this.getData();
+		long timestamp;
 		
-		while(NodeData.get(dataIndex) != null){
+		for(int i = 0; i < data.size(); i++){
+			timestamp = data.get(i).getTimestamp();
 			// if current data-point's time is after start but before end...
-			if(NodeData.get(dataIndex).getTimestamp()>= startTime && NodeData.get(dataIndex).getTimestamp() <= endTime){
+			if(timestamp >= startTime && timestamp <= endTime){
 				// get that data point and add to the return list
-				returnList.add(NodeData.get(dataIndex));
+				returnList.add(data.get(i));
 			}
 		}
 		
@@ -172,5 +171,19 @@ public class Node {
 	 */
 	public void setId(int id) {
 		this.id = id;
+	}
+
+	/**
+	 * @return the mleTau
+	 */
+	public double getMleTau() {
+		return mleTau;
+	}
+
+	/**
+	 * @param mleTau the mleTau to set
+	 */
+	public void setMleTau(double mleTau) {
+		this.mleTau = mleTau;
 	}
 }// end class

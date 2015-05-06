@@ -45,7 +45,7 @@ public class DataProcessor {
 	 * @param nodes
 	 * @return
 	 */
-	public static ArrayList<Node> getNodeSetDataRange(long startTime, long endTime, ArrayList<Node> nodes){
+	public static ArrayList<Node> getNodeSetDataRange(long startTime, long endTime, ArrayList<Node> nodes,int threshold){
 		// arraylist to hold return values
 		ArrayList<Node> returnList = new ArrayList<Node>();
 		
@@ -57,8 +57,10 @@ public class DataProcessor {
 			// get data range from range for this node
 			tempNode.setData(tempNode.getDataRange(startTime, endTime));
 			
-			// add temp node to return list
-			returnList.add(tempNode);
+			if(tempNode.getDataSize() > threshold){
+				// add temp node to return list
+				returnList.add(tempNode);
+			}
 		}
 		
 		// return an arraylist of all nodes, each of which's data is an arraylist of tuples from the appropriate data range
