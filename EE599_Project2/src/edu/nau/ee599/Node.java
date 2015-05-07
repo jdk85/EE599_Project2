@@ -15,8 +15,9 @@ public class Node {
 	// class variables
 	private String name;
 	private int id;
-	private ArrayList<Tuple> data;
 	private ArrayList<Tuple> taus;
+	private ArrayList<TripleTuple> estimates;
+	private double mleTau;
 	
 	// constructor
 	public Node(String name, int id){
@@ -24,17 +25,11 @@ public class Node {
 		this.setId(id);			// id: ex. 10
 		
 		//Init the Arraylist
-		data = new ArrayList<Tuple>();
 		taus = new ArrayList<Tuple>();
+		estimates = new ArrayList<TripleTuple>();
 	}// end constructor
 	
-	/**
-	 * 
-	 * @return
-	 */
-	public ArrayList<Tuple> getData(){
-		return data;
-	}
+
 	
 	/**
 	 * 
@@ -43,31 +38,22 @@ public class Node {
 	public ArrayList<Tuple> getTaus(){
 		return taus;
 	}
-	
-	/**
-	 * retrieves the number of data elements in the Node's data
-	 * @return
-	 */
-	public int getDataSize(){
-		return data.size();
-	}// end getNumDataPoints
 
-	/**
-	 * Add a tuple to the data object for this node
-	 * @param tuple
-	 */
-	public void addDataTuple(Tuple tuple){
-		data.add(tuple);	
-	}
+
 	public void addTausTuple(Tuple tuple){
 		taus.add(tuple);
 	}
-
-	// sets a node's data to the specified arraylist
-	public void setData(ArrayList<Tuple> dataSet){
-		this.data = dataSet;
+	public void addTripleTuple(TripleTuple tuple){
+		estimates.add(tuple);	
 	}
-	
+
+	/**
+	 * 
+	 * @return
+	 */
+	public int getEstimatesSize(){
+		return estimates.size();
+	}
 	
 	/**
 	 * Return a range of data for a given start,end time filted to fall within the specified start
@@ -79,16 +65,16 @@ public class Node {
 	 * @param end_hour
 	 * @return
 	 */
-	public ArrayList<Tuple> getDataRange(long startTime, long endTime, int start_hour, int end_hour){
+	public ArrayList<TripleTuple> getDataRange(long startTime, long endTime, int start_hour, int end_hour){
 		// declare new ArrayList for result to be stored in. 
-		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
+		ArrayList<TripleTuple> returnList = new ArrayList<TripleTuple>();
 		//Calendar obj use to get hour from timestamp
 		Calendar cal = Calendar.getInstance();
 		//Stores the hour (0-23) of the current datapoint
 		int hour;
 		long timestamp;
-		for(int i = 0; i < data.size(); i++){
-			timestamp = data.get(i).getTimestamp();
+		for(int i = 0; i < estimates.size(); i++){
+			timestamp = estimates.get(i).getTimestamp();
 			// if current data-point's time is after start but before end...
 			if( timestamp >= startTime && timestamp <= endTime){
 				//get the hour of the timestamp
@@ -98,13 +84,13 @@ public class Node {
 				if(start_hour > end_hour){
 					if(hour >= start_hour || hour < end_hour){
 						// get that data point and add to the return list
-						returnList.add(data.get(i));
+						returnList.add(estimates.get(i));
 					}
 				}
 				else{
 					if(hour >= start_hour && hour < end_hour){
 						// get that data point and add to the return list
-						returnList.add(data.get(i));
+						returnList.add(estimates.get(i));
 					}
 				}
 			}
@@ -119,20 +105,18 @@ public class Node {
 	 * @param endTime
 	 * @return ArrayList of data tuples
 	 */
-	public ArrayList<Tuple> getDataRange(long startTime, long endTime){
+	public ArrayList<TripleTuple> getDataRange(long startTime, long endTime){
 		// declare new ArrayList for result to be stored in. 
-		ArrayList<Tuple> returnList = new ArrayList<Tuple>();
+		ArrayList<TripleTuple> returnList = new ArrayList<TripleTuple>();
 		
-		// loop through node's data
-		int dataIndex = 0;
-		ArrayList<Tuple> NodeData = new ArrayList<Tuple>();
-		NodeData = this.getData();
+		long timestamp;
 		
-		while(NodeData.get(dataIndex) != null){
+		for(int i = 0; i < estimates.size(); i++){
+			timestamp = estimates.get(i).getTimestamp();
 			// if current data-point's time is after start but before end...
-			if(NodeData.get(dataIndex).getTimestamp()>= startTime && NodeData.get(dataIndex).getTimestamp() <= endTime){
+			if(timestamp >= startTime && timestamp <= endTime){
 				// get that data point and add to the return list
-				returnList.add(NodeData.get(dataIndex));
+				returnList.add(estimates.get(i));
 			}
 		}
 		
@@ -172,5 +156,33 @@ public class Node {
 	 */
 	public void setId(int id) {
 		this.id = id;
+	}
+
+	/**
+	 * @return the mleTau
+	 */
+	public double getMleTau() {
+		return mleTau;
+	}
+
+	/**
+	 * @param mleTau the mleTau to set
+	 */
+	public void setMleTau(double mleTau) {
+		this.mleTau = mleTau;
+	}
+
+	/**
+	 * @return the estPrior
+	 */
+	public ArrayList<TripleTuple> getEstimates() {
+		return estimates;
+	}
+
+	/**
+	 * @param estPrior the estPrior to set
+	 */
+	public void setEstimates(ArrayList<TripleTuple> estimates) {
+		this.estimates = estimates;
 	}
 }// end class

@@ -1,1 +1,7 @@
 /bin
+/TemperatureData.csv
+/TauData.csv
+/ArbTempDataset.csv
+/AdelMathDeployment.csv
+/EstimatedIndoor.csv
+/EstimatedTemperatures.csv
