@@ -211,8 +211,8 @@ public class KnownRCData extends ApplicationFrame{
 			
 	        //Create new XYSeries to store the thermostat line
 	        XYSeries nodeData = new XYSeries("Node Data");   
-	        ArrayList<TripleTuple> data = node.getEstimates();
-	        for(TripleTuple t : data){
+	        ArrayList<Tuple> data = node.getData();
+	        for(Tuple t : data){
 	        	nodeData.add(t.getTimestamp(),t.getTemperature());
 				
 			}		

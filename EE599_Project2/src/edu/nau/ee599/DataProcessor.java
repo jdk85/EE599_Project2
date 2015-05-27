@@ -31,7 +31,7 @@ public class DataProcessor {
 		// declare temp node which is a copy of the passed in node
 		Node tempNode = node;
 		// set data on temp node to be a subset of passed node's data from correct interval
-		tempNode.setEstimates(node.getDataRange(startTime, endTime));
+		tempNode.setData(node.getDataRange(startTime, endTime));
 		// return temp node
 		return tempNode;
 	}
@@ -54,9 +54,10 @@ public class DataProcessor {
 			// temp node to copy current node's contents into
 			Node tempNode = nodes.get(i);
 			
-			// get data range from range for this node			
-			tempNode.setEstimates(tempNode.getDataRange(startTime, endTime));
-			if(tempNode.getEstimatesSize() > threshold){
+			// get data range from range for this node
+			tempNode.setData(tempNode.getDataRange(startTime, endTime));
+			
+			if(tempNode.getDataSize() > threshold){
 				// add temp node to return list
 				returnList.add(tempNode);
 			}
@@ -84,9 +85,9 @@ public class DataProcessor {
 			Node tempNode = nodes.get(i);
 			
 			// get data range from range for this node
-			tempNode.setEstimates(tempNode.getDataRange(startTime, endTime,start_hour,end_hour));
+			tempNode.setData(tempNode.getDataRange(startTime, endTime,start_hour,end_hour));
 			
-			if(tempNode.getEstimatesSize() > threshold){
+			if(tempNode.getDataSize() > threshold){
 				// add temp node to return list
 				returnList.add(tempNode);
 			}
@@ -115,22 +116,22 @@ public class DataProcessor {
 		Node tempNode = node; // temp node to work on
 		
 		// get subset range of data values
-		tempNode.setEstimates(node.getDataRange(startTime,endTime));
+		tempNode.setData(node.getDataRange(startTime,endTime));
 		
-		TripleTuple minTemp = node.getEstimates().get(0); // set to min for starting point
-		TripleTuple maxTemp = node.getEstimates().get(0); // set to max for starting point
+		Tuple minTemp = node.getData().get(0); // set to min for starting point
+		Tuple maxTemp = node.getData().get(0); // set to max for starting point
 		
 		// loop through node's data to find min and max
-		for(int i = 0; i < tempNode.getEstimatesSize(); i++){
+		for(int i = 0; i < tempNode.getDataSize(); i++){
 			// if a new min temp is found
-			if(tempNode.getEstimates().get(i).getTemperature() < minTemp.getTemperature()){
+			if(tempNode.getData().get(i).getTemperature() < minTemp.getTemperature()){
 				// set current node to new min
-				minTemp = tempNode.getEstimates().get(i); 
+				minTemp = tempNode.getData().get(i); 
 			}
 			// if a new max temp is found
-			else if(tempNode.getEstimates().get(i).getTemperature() > maxTemp.getTemperature()){
+			else if(tempNode.getData().get(i).getTemperature() > maxTemp.getTemperature()){
 				// set current node to new max
-				maxTemp = tempNode.getEstimates().get(i); 
+				maxTemp = tempNode.getData().get(i); 
 			}
 			else 
 				// no new min or max so continue to next point
