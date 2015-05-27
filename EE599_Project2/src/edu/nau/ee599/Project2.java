@@ -43,6 +43,9 @@ public class Project2 {
 			else if(arg.equalsIgnoreCase("arb")){
 				(new Project2()).plotArb();
 			}
+			else{
+				printHelp();
+			}
 		}
 	}
 	/**
