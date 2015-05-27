@@ -8,6 +8,7 @@ import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -25,12 +26,50 @@ public class Project2 {
 	 * @param args
 	 */
 	public static void main(String[] args){
-//		(new Project2()).run();
-//		(new Project2()).fake();
-//		(new Project2()).plotFake();
-//		(new Project2()).plotArb();
-		(new Project2()).predictAll();
+		if(args.length != 1){
+			printHelp();
+		}
+		else{
+			String arg = args[0];
+			if(arg.equalsIgnoreCase("filter")){
+				(new Project2()).run();
+			}
+			if(arg.equalsIgnoreCase("difference")){
+				(new Project2()).calculateDifference();
+			}
+			else if(arg.equalsIgnoreCase("spoof")){
+				(new Project2()).plotFake();
+			}
+			else if(arg.equalsIgnoreCase("predict")){
+				(new Project2()).predictAll();
+			}
+			else if(arg.equalsIgnoreCase("arb")){
+				(new Project2()).plotArb();
+			}
+			else{
+				printHelp();
+			}
+		}
 	}
+	/**
+	 * Prints argument info to screen and quits
+	 */
+	public static void printHelp(){
+		System.out.println("You must include mode as the first argument");
+		System.out.println("See the included README for more info on each mode");
+		System.out.println("==== Modes ====");
+		System.out.println("filter - this mode parses the data and outputs a csv with tau estimates for 4/10/2015- 4/17/2015 filtered from 9PM to 5AM");
+		System.out.println("difference - mode calculates the difference between outdoor and indoor and the change in indoor temperate and generates a CSV");
+		System.out.println("spoof - this mode generates and plots a spoof model");
+		System.out.println("predict - this mode uses known MLE tau values for each wisard to predict the indoor temp");
+		System.out.println("arb - this mode plots the arb data");
+		System.out.println("\r\n\r\n");
+		System.exit(-1);
+	}
+	/**
+	 * This function looks at MLE tau estimates and tries to predict
+	 * the next indoor temperature for the next t+delta
+	 */
 	public void predictAll(){
 		//Create the node Array
 		nodes = new ArrayList<Node>();
@@ -47,24 +86,23 @@ public class Project2 {
 		parseArb();
 		//Load MLE tau estimates
 		parseTau();
+		
 		String startTime = "04/10/2015 21:00:00";
 		String endTime = "04/17/2015 5:00:00";
-
-		try{				
+		int start_hour = 21;
+		int end_hour = 5;
+		try{
 			System.out.println("\r\n\r\n");
 			//Filter data by start and end date
 			//as well as start and end hour
-			ArrayList<Node> shortList = DataProcessor.getNodeSetDataRange(
+			ArrayList<Node> filterList = DataProcessor.getNodeSetDataRange(
 					sdf.parse(startTime).getTime(), 
-					sdf.parse(endTime).getTime(),
+					sdf.parse(endTime).getTime(), 
+					start_hour, 
+					end_hour, 
 					nodes,
 					30); //Limit to only channels with more than 30 data points for the CLT
-			
-			//Print the number of data points for the filtered nodes
-			
-			for(Node s : shortList){	
-				System.out.println(s.getName() + "\tData Points: " + s.getDataSize());	
-			}
+
 			
 
 			//Temp store the arboretum node
@@ -74,18 +112,23 @@ public class Project2 {
 				System.out.println("Arboretum Node Not Found... Exiting");
 				System.exit(0);
 			}
-			double t0,t1,e0,delta,estTemp;
+			//Placeholder variables
+			double t0,t1,e0,delta,estTemp,prior;
 			long ts,ts1;
+			
+			//CSV Filewriter
 			FileWriter temperatures = new FileWriter("./EstimatedTemperatures.csv");
-			temperatures.append("name,timestamp,estimated,actual,outdoor\n");
+			temperatures.append("name,timestamp,estimated,actual,outdoor,timestring\n");
 			//Iterate through each node
-			for(Node n : shortList){
+			for(Node n : filterList){
 				
 				//Make sure we're not using the arboretum node
 				if(!n.getName().equals("arboretum")){
 					//System.out.println("Node: " + n.getName());
-					ArrayList<Tuple> data = n.getData();
-
+					ArrayList<TripleTuple> data = n.getEstimates();
+					
+					data.get(0).setEstimatedTemperature(data.get(0).getTemperature());
+					
 					for(int i = 1; i < data.size(); i++){
 						//Get the previous timestamp
 						ts = data.get(i-1).getTimestamp();
@@ -96,8 +139,12 @@ public class Project2 {
 						e0 = getOutdoorTempAtTimeT(arboretum, ts);
 						//Fetch the temperature for previous room temp (Th(t))
 						t0 = data.get(i-1).getTemperature();
+						//Fetch the previous estimate for a room
+						prior = data.get(i-1).getEstimatedTemperature();
+						data.get(i).setEstimatedTemperature(prior);
 						//Fetch the temperature for the current room temp (Th(delta+t))
 						t1 = data.get(i).getTemperature();
+						
 						if(n.getMleTau() != 0){
 							if((t0 > -50 && t0 < 50)
 								&& (t1 > -50 && t1 < 50)
@@ -105,14 +152,23 @@ public class Project2 {
 								&& (delta > 0 && delta < 65)
 							){
 								//Populate the estimated indoor temp from MLE of calculated taus
-								estTemp = t0 + (-delta*(t0-e0))/n.getMleTau();
+								estTemp = prior + -(delta*(prior-e0))/n.getMleTau();
+								System.out.println("Offset:\t"+(estTemp-t1));
+								data.get(i).setEstimatedTemperature(estTemp);
+								 
 								if(estTemp > -60 && estTemp < 60){
-									temperatures.append(n.getName()+","+ts+","+ estTemp +","+t1+","+e0+"\n");
+									temperatures.append(n.getName()+","+ts+","+ estTemp +","+t1+","+e0+"," + new Date(ts) + "\n");
 								}
 								else{
-									System.out.println("\t*" + n.getName()+"\tTS: "+ts+"\tDelta: " + delta +"\tEstimate: "+ estTemp +"\tt1: "+t1+"\te0: "+e0);
+									//System.out.println("\t*" + n.getName()+"\tTS: "+ts+"\tDelta: " + delta +"\tEstimate: "+ estTemp +"\tt1: "+t1+"\te0: "+e0);
 								}
 								
+								
+							}
+							else{
+								//If we have an invalid data point (or a big delta),
+								//Set the current estimate to the actual indoor temperature
+								data.get(i).setEstimatedTemperature(t0);
 							}
 						}
 					}
@@ -120,21 +176,21 @@ public class Project2 {
 			}
 			temperatures.flush();
 			temperatures.close();
-			
+
+			System.out.println("Done with predictAll()");
 		
 		}
 		catch(ParseException e){
 			e.printStackTrace();
 			System.exit(0);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(0);
 		}
 		
 	}
 	/**
-	 * 
+	 * Parses Arb data and plots it
 	 */
 	public void plotArb(){
 		//Create the node Array
@@ -146,6 +202,9 @@ public class Project2 {
 		rcdata.plotNodeData(findNodeByName("arboretum"));		
 		
 	}
+	/**
+	 * Generates spoof data and plots it
+	 */
 	public void plotFake(){
 		double R = 5.88;
 		double C = 3401;
@@ -155,7 +214,9 @@ public class Project2 {
 		
 		
 	}
-	
+	/**
+	 * Generates fake data and tries to estimate RC
+	 */
 	public void fake(){
 		double R = 5.88;
 		double C = 3401;
@@ -167,6 +228,7 @@ public class Project2 {
 	}
 	/**
 	 * Main execution method
+	 * Filters the data and generates 'TauData' CSV
 	 */
 	public void run(){
 				
@@ -185,14 +247,84 @@ public class Project2 {
 		parseArb();
 		//Load MLE tau estimates
 		parseTau();
+
+		/////////////////////////////////////
+		//
+		//		Filter Data by Time
+		//
+		////////////////////////////////////
 		
-		//Print the number of data points for each wisard to see if everything worked
-		/*
-		for(Node n : nodes){
-			System.out.println(n.getName() + "\tData Points: " + n.getDataSize());
+		String startTime = "04/10/2015 21:00:00";
+		String endTime = "04/17/2015 5:00:00";
+		int start_hour = 21;
+		int end_hour = 5;
+		try{				
+			System.out.println("\r\n\r\n");
+			//Filter data by start and end date
+			//as well as start and end hour
+			ArrayList<Node> shortList = DataProcessor.getNodeSetDataRange(
+					sdf.parse(startTime).getTime(), 
+					sdf.parse(endTime).getTime(), 
+					start_hour, 
+					end_hour, 
+					nodes,
+					30); //Limit to only channels with more than 30 data points for the CLT
+
+			
+			/////////////////////////////////////
+			//
+			//		Process Tau
+			//
+			////////////////////////////////////
+			estimateRC(shortList);
+			
+
+			
+			/////////////////////////////////////
+			//
+			//		Generate CSV
+			//
+			////////////////////////////////////
+			FileWriter writer = new FileWriter("TauData.csv");
+			writer.append("name,timestamp,tau\n");
+			for(Node n : shortList){				
+				for(Tuple t : n.getTaus()){
+					writer.append(n.getName() + "," + t.getTimestamp() + "," + t.getTemperature() + "\n");
+				}
+			}
+			writer.flush();
+			writer.close();
+			System.out.println("Done");
+			
 		}
-		*/
+		catch(ParseException e){
+			e.printStackTrace();
+			System.exit(0);
+		}catch (IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	public void calculateDifference(){
 		
+		//Create the node Array
+		nodes = new ArrayList<Node>();
+		//Add the arb data as the first entry with -1 id
+		nodes.add(new Node("arboretum",-1));
+		//Populate node list for wisards
+		for(int i = 1; i <= 19; i++){
+			nodes.add(new Node("wisard_" + i,i));
+		}
+		
+		//Load Adel data into the node array
+		parseAdel();
+		//Load Arb data into the node array
+		parseArb();		
+
 		/////////////////////////////////////
 		//
 		//		Filter Data by Time
@@ -215,48 +347,113 @@ public class Project2 {
 					nodes,
 					30); //Limit to only channels with more than 30 data points for the CLT
 			
-			//Print the number of data points for the filtered nodes
-			
-//			for(Node s : shortList){	
-//				System.out.println(s.getName() + "\tData Points: " + s.getDataSize());	
-//			}
-			
 			/////////////////////////////////////
 			//
-			//		Process Tau
-			//
-			////////////////////////////////////
-			estimateRC(shortList);
+			//		Generate a Data Set
+			//		MICHAEL - this method will output the CSV that you want 
+			//		TODO
+			////////////////////////////////////			
+			generateDataSet(shortList);
 			
 			
-			/////////////////////////////////////
-			//
-			//		Generate CSV
-			//
-			////////////////////////////////////
-			FileWriter writer = new FileWriter("TauData.csv");
-			writer.append("name,timestamp,tau\n");
-			for(Node n : shortList){				
-				for(Tuple t : n.getTaus()){
-					writer.append(n.getName() + "," + t.getTimestamp() + "," + t.getTemperature() + "\n");
-				}
-			}
-			writer.flush();
-			writer.close();
+			
 			System.out.println("Done");
-			//TODO: take the tau arrays from each node and find ML
 			
 		}
 		catch(ParseException e){
 			e.printStackTrace();
 			System.exit(0);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		}
+	
+	}
+	public void generateDataSet(ArrayList<Node> nodes){
+
+		//Temp store the arboretum node
+		Node arboretum;
+		//Check that the node list has an arboretum node
+		if((arboretum = findNodeByName("arboretum")) == null){
+			System.out.println("Arboretum Node Not Found... Exiting");
 			System.exit(0);
 		}
-	}
+		double t0,t1,delta,difference,change;
+		Tuple arbSample;
+		long ts,ts1;
+		try{
+			FileWriter temperature = new FileWriter("DifferenceData.csv");
+			temperature.append("name,arb timestamp,arb temperature,adel timestamp, adel temperature,difference,change \n");
+			//Iterate through each node
+			for(Node n : nodes){
+				
+				//Make sure we're not using the arboretum node
+				if(!n.getName().equals("arboretum")){
+					ArrayList<TripleTuple> data = n.getEstimates();
+					
+					
+					/////////////////////////////////////
+					//
+					//		Calculate RC (Tau)
+					//
+					// Use this equation:
+					// tau = (-delta*(t0-e0))/(t1-t0)
+					//
+					// Where
+					// delta: time step (ts1-ts)/1000.0 in seconds
+					// t0 = indoor temp at time t
+					// t1 = indoor temp at time t+delta
+					// e0 = outdoor temp sample ts
+					// ts = time t
+					// ts1 = time at t+delta
+					//
+					//
+					////////////////////////////////////
+					for(int i = 1; i < data.size(); i++){
+						//Get the previous timestamp
+						ts = data.get(i-1).getTimestamp();
+						//Get the current timestamp
+						ts1 = data.get(i).getTimestamp();
+						
+						//Get the arb data temperature for the closest timestamp to the current (Te(t))
+						arbSample = getOutdoorTempAndTimestampAtTimeT(arboretum, ts);
+						//Fetch the temperature for previous room temp (Th(t))
+						t0 = data.get(i-1).getTemperature();
+						//Fetch the temperature for the current room temp (Th(delta+t))
+						t1 = data.get(i).getTemperature();
+						
+						//Filter out any outlier temperature values
+						if((t0 > 0 && t0 < 60) || (t1 > 0 && t1 < 60)){
+							delta = (ts1 - ts)/1000.;
+							//make sure delta is positive and not the same timestamp
+							if(delta > 0 && !(delta > 65)){
+								if(t1-t0 != 0){	
+									difference = Math.abs(t1-arbSample.getTemperature());
+									change = Math.abs(t1-t0)/delta;
+									temperature.append(n.getName() + "," + 
+											arbSample.getTimestamp() + "," + 
+											arbSample.getTemperature() + "," + 
+											ts + "," +
+											t1 + "," +
+											difference + "," +
+											change + "\n");
+									
+								}
+							}
+						}
+					}
+				}
+			}
+			temperature.flush();
+			temperature.close();
+		}catch(Exception e){
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	
+	}
+	/**
+	 * Tries to use the spoof data to estimate RC 
+	 * NOTE: this still assumes q=0 since we haven't split RC
+	 * @param nodes
+	 */
 	public void estimateRC(ArrayList<Node> nodes){
 		//Temp store the arboretum node
 		Node arboretum;
@@ -265,20 +462,18 @@ public class Project2 {
 			System.out.println("Arboretum Node Not Found... Exiting");
 			System.exit(0);
 		}
-		double tau,t0,t1,e0,delta,estTemp;
+		double tau,t0,t1,e0,delta;
 		long ts,ts1;
 		try{
 			FileWriter temperature = new FileWriter("TemperatureData.csv");
-			FileWriter estimatedTemperature = new FileWriter("EstimatedIndoor.csv");
 			temperature.append("name,timestamp,indoor,outdoor\n");
-			estimatedTemperature.append("name,timestamp,indoor\n");
 			//Iterate through each node
 			for(Node n : nodes){
 				
 				//Make sure we're not using the arboretum node
 				if(!n.getName().equals("arboretum")){
 					//System.out.println("Node: " + n.getName());
-					ArrayList<Tuple> data = n.getData();
+					ArrayList<TripleTuple> data = n.getEstimates();
 					
 					
 					/////////////////////////////////////
@@ -319,14 +514,8 @@ public class Project2 {
 								if(t1-t0 != 0){
 									tau = (-delta*(t0-e0))/(t1-t0);
 									//Check for stability
-									if(delta < tau){
-										//System.out.println("tau: " + tau + "\tt0:" + t0 + "\tt1: " + t1 + "\te0: " + e0 + "\tdelta: " + delta + " " + new Date(ts));							
-										n.addTausTuple(new Tuple(ts,tau));
-										//Populate the estimated indoor temp from MLE of calculated taus
-										estTemp = t0 + (-delta*(t0-e0))/n.getMleTau();
-										
-										estimatedTemperature.append(n.getName()+","+ts+","+ estTemp + "\n");
-										
+									if(delta < tau){						
+										n.addTausTuple(new Tuple(ts,tau));	
 										temperature.append(n.getName()+","+ts+","+t0+","+e0+"\n");
 									}
 								}
@@ -335,8 +524,6 @@ public class Project2 {
 					}
 				}
 			}
-			estimatedTemperature.flush();
-			estimatedTemperature.close();
 			temperature.flush();
 			temperature.close();
 		}catch(Exception e){
@@ -345,16 +532,22 @@ public class Project2 {
 		}
 	}
 	
+	/**
+	 * Matches the closest temporal temperature data point
+	 * @param outdoor - the Node object containing the arboretum data
+	 * @param timestamp - the timestamp to search for
+	 * @return temperature value of the closest timestamp
+	 */
 	public double getOutdoorTempAtTimeT(Node outdoor, long timestamp){
 		//We need to search through the outdoor data array and get the closest timestamp
 		//This is highly inefficient (O(N)) since the data is already sorted so it's a 
 		//temporary solution
 		
 		//Init the closest Tuple object
-		Tuple closestTuple = null;
+		TripleTuple closestTuple = null;
 		long difference = Long.MAX_VALUE;
 		long tempDifference;
-		for(Tuple t : outdoor.getData()){
+		for(TripleTuple t : outdoor.getEstimates()){
 			tempDifference = Math.abs(t.getTimestamp() - timestamp);
 			if( tempDifference < difference){
 				difference = tempDifference;
@@ -367,13 +560,41 @@ public class Project2 {
 		
 		return closestTuple.getTemperature();
 	}
+	
 	/**
-	 * 
+	 * Matches the closest temporal temperature data point
+	 * @param outdoor - the Node object containing the arboretum data
+	 * @param timestamp - the timestamp to search for
+	 * @return temperature value of the closest timestamp
+	 */
+	public Tuple getOutdoorTempAndTimestampAtTimeT(Node outdoor, long timestamp){
+		//We need to search through the outdoor data array and get the closest timestamp
+		//This is highly inefficient (O(N)) since the data is already sorted so it's a 
+		//temporary solution
+		
+		//Init the closest Tuple object
+		TripleTuple closestTuple = null;
+		long difference = Long.MAX_VALUE;
+		long tempDifference;
+		for(TripleTuple t : outdoor.getEstimates()){
+			tempDifference = Math.abs(t.getTimestamp() - timestamp);
+			if( tempDifference < difference){
+				difference = tempDifference;
+				closestTuple = t;
+			}			
+		}
+		
+		//Debug testing
+		//System.out.println("Search Date: " + new Date(timestamp) + "\tFound Date: " + new Date(closestTuple.getTimestamp()));
+		
+		return new Tuple(closestTuple.getTimestamp(),closestTuple.getTemperature());
+	}
+	/**
+	 * Parse and filter the Adel CSV
 	 */
 	public void parseAdel(){
 		try{
 			File adelData = new File("./AdelMathDeployment.csv");
-			//File arbData = new File("./ArbTempdataset.csv");		
 			
 			CSVParser parser = CSVParser.parse(adelData, Charset.defaultCharset(), CSVFormat.RFC4180);
 			
@@ -394,7 +615,7 @@ public class Project2 {
 					
 					//Find the corresponding node and add the timestamp/data tuple
 					if((tempNode = findNodeByName(name)) != null){
-						tempNode.addDataTuple(new Tuple(Long.parseLong(csvrecord.get(2)),Double.parseDouble(csvrecord.get(6))));
+						tempNode.addTripleTuple(new TripleTuple(Long.parseLong(csvrecord.get(2)),Double.parseDouble(csvrecord.get(6)),Double.NaN));
 					}
 				}
 				
@@ -407,7 +628,7 @@ public class Project2 {
 	}
 	
 	/**
-	 * 
+	 * Parse and filter the arb data
 	 */
 	public void parseArb(){
 		try{
@@ -421,7 +642,7 @@ public class Project2 {
 			for(CSVRecord csvrecord : parser){
 				//Find the corresponding node and add the timestamp/data tuple
 				if((tempNode = findNodeByName("arboretum")) != null){					
-					tempNode.addDataTuple(new Tuple(Long.parseLong(csvrecord.get(2)),Double.parseDouble(csvrecord.get(6))));
+					tempNode.addTripleTuple(new TripleTuple(Long.parseLong(csvrecord.get(2)),Double.parseDouble(csvrecord.get(6)),Double.NaN));
 				}
 			}
 			System.out.println("Done Parsing Arboretum Data...");
@@ -432,7 +653,7 @@ public class Project2 {
 	}
 	
 	/**
-	 * 
+	 * Parse and load in the MLE for tau
 	 */
 	public void parseTau(){
 		try{
@@ -463,9 +684,9 @@ public class Project2 {
 	}
 	
 	/**
-	 * 
+	 * Searches the main node array for a particular node
 	 * @param name
-	 * @return
+	 * @return the node if a match is found, else null
 	 */
 	public Node findNodeByName(String name){
 		for(Node n : nodes){
@@ -477,9 +698,10 @@ public class Project2 {
 	}
 	
 	/**
-	 * 
+	 * Searches the node array tempNodes for a particular node
+	 * @param tempNodes
 	 * @param name
-	 * @return
+	 * @return the node if a match is found, else null
 	 */
 	public Node findNodeByName(ArrayList<Node> tempNodes, String name){
 		for(Node n : tempNodes){
@@ -491,4 +713,4 @@ public class Project2 {
 	}
 	
 	
-}// end class
+}
